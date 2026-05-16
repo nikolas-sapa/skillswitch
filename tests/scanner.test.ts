@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { extractDescription, scanStandaloneSkills } from '../src/scanner.js';
+import { extractDescription, scanStandaloneSkills, scanPlugins } from '../src/scanner.js';
 
 describe('extractDescription', () => {
   it('returns first non-empty, non-heading line', () => {
@@ -47,5 +47,54 @@ describe('scanStandaloneSkills', () => {
   it('ignores non-.md files', () => {
     fs.writeFileSync(path.join(tmpDir, 'skills', 'notes.txt'), 'ignore');
     expect(scanStandaloneSkills(tmpDir)).toHaveLength(0);
+  });
+});
+
+describe('scanPlugins', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skillctl-'));
+    fs.mkdirSync(path.join(tmpDir, 'plugins', 'cache', 'mkt', 'myplugin', '1.0.0', 'skills'), { recursive: true });
+  });
+
+  afterEach(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
+
+  it('returns empty array when installed_plugins.json is absent', () => {
+    expect(scanPlugins(tmpDir)).toHaveLength(0);
+  });
+
+  it('returns a PluginEntry with skills from cache', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'installed_plugins.json'),
+      JSON.stringify({ version: 1, plugins: { 'myplugin@mkt': {} } })
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'blocklist.json'),
+      JSON.stringify({ fetchedAt: new Date().toISOString(), plugins: [] })
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'cache', 'mkt', 'myplugin', '1.0.0', 'skills', 'deploy.md'),
+      '# Deploy\n\nDeploys things.'
+    );
+
+    const result = scanPlugins(tmpDir);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ id: 'myplugin@mkt', status: 'active' });
+    expect(result[0].skills[0]).toMatchObject({ name: 'myplugin:deploy', status: 'active', description: 'Deploys things.' });
+  });
+
+  it('marks plugin as disabled when in blocklist', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'installed_plugins.json'),
+      JSON.stringify({ version: 1, plugins: { 'myplugin@mkt': {} } })
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'blocklist.json'),
+      JSON.stringify({ fetchedAt: new Date().toISOString(), plugins: [{ plugin: 'myplugin@mkt', added_at: new Date().toISOString(), reason: 'test' }] })
+    );
+
+    const result = scanPlugins(tmpDir);
+    expect(result[0].status).toBe('disabled');
   });
 });
