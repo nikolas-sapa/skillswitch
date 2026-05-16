@@ -36,6 +36,7 @@ describe('readBlocklist', () => {
     expect(result.plugins).toHaveLength(1);
     expect(result.plugins[0].plugin).toBe('myplugin@mkt');
     expect(result.plugins[0].reason).toBe('security');
+    expect(result.fetchedAt).toBe('2024-01-01T00:00:00.000Z');
   });
 });
 

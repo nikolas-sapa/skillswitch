@@ -15,7 +15,7 @@ export async function readBlocklist(claudeDir = defaultClaudeDir): Promise<Block
   try {
     const raw = await fs.readFile(filePath, 'utf-8');
     const parsed = JSON.parse(raw) as BlocklistFile;
-    return { fetchedAt: new Date().toISOString(), plugins: parsed.plugins ?? [] };
+    return { fetchedAt: parsed.fetchedAt ?? new Date().toISOString(), plugins: parsed.plugins ?? [] };
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
       return { fetchedAt: new Date().toISOString(), plugins: [] };
