@@ -18,8 +18,9 @@ export function generateCatalog(claudeDir = defaultClaudeDir): string {
   const totalActive = activeStandalone.length + activePlugins.reduce((n, p) => n + p.skills.length, 0);
   const totalDisabled = disabledStandalone.length + disabledPlugins.reduce((n, p) => n + p.skills.length, 0);
 
+  const escape = (s: string) => s.replace(/\|/g, '\\|').replace(/\n/g, ' ');
   const rows = (skills: Array<{ name: string; description: string }>) =>
-    skills.map(s => `| ${s.name} | ${s.description || '—'} |`).join('\n');
+    skills.map(s => `| ${escape(s.name)} | ${escape(s.description || '—')} |`).join('\n');
 
   const sections: string[] = [
     `# Skills Catalog`,

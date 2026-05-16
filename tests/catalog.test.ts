@@ -46,4 +46,10 @@ describe('generateCatalog', () => {
     expect(typeof result).toBe('string');
     expect(result).toContain('Skills Catalog');
   });
+
+  it('produces valid header with zero skills', () => {
+    const result = generateCatalog(tmpDir);
+    expect(result).toContain('Active: 0 | Disabled: 0');
+    expect(result).not.toContain('##');
+  });
 });

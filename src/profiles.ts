@@ -34,7 +34,9 @@ export function readProfileStore(claudeDir = defaultClaudeDir): ProfileStore {
 function writeProfileStore(store: ProfileStore, claudeDir: string): void {
   const filePath = profileStorePath(claudeDir);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(store, null, 2));
+  const tmp = filePath + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(store, null, 2));
+  fs.renameSync(tmp, filePath);
 }
 
 export function saveProfile(name: string, skills: string[], plugins: string[], claudeDir = defaultClaudeDir): void {
@@ -50,9 +52,8 @@ export function saveProfile(name: string, skills: string[], plugins: string[], c
 
 export function deleteProfile(name: string, claudeDir = defaultClaudeDir): void {
   const store = readProfileStore(claudeDir);
-  if (store.active === name) {
-    throw new Error('Cannot delete active profile');
-  }
+  if (store.active === name) throw new Error('Cannot delete active profile');
+  if (!store.profiles[name]) throw new Error(`Profile "${name}" does not exist`);
   delete store.profiles[name];
   writeProfileStore(store, claudeDir);
 }
@@ -103,8 +104,8 @@ export async function activateProfile(name: string, claudeDir = defaultClaudeDir
   let pluginsBlocked: string[] = [];
 
   try {
-    const raw = JSON.parse(fs.readFileSync(installedPath, 'utf-8')) as { plugins: Record<string, unknown> };
-    const allInstalled = Object.keys(raw.plugins);
+    const raw = JSON.parse(fs.readFileSync(installedPath, 'utf-8'));
+    const allInstalled = Object.keys(raw?.plugins ?? {});
     pluginsBlocked = allInstalled.filter(id => !profilePlugins.has(id));
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
