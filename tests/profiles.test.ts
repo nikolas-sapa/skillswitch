@@ -61,6 +61,7 @@ describe('activateProfile', () => {
     const result = await activateProfile('dev', tmpDir);
 
     expect(fs.existsSync(path.join(tmpDir, 'skills', 'plan.md'))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, 'skills', 'ads.md'))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, 'skills', '.disabled', 'ads.md'))).toBe(true);
     expect(result.disabled).toContain('ads');
   });
@@ -72,10 +73,24 @@ describe('activateProfile', () => {
     const result = await activateProfile('dev', tmpDir);
 
     expect(fs.existsSync(path.join(tmpDir, 'skills', 'ship.md'))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, 'skills', '.disabled', 'ship.md'))).toBe(false);
     expect(result.enabled).toContain('ship');
   });
 
   it('throws when profile does not exist', async () => {
     await expect(activateProfile('nonexistent', tmpDir)).rejects.toThrow('does not exist');
+  });
+
+  it('blocks plugins not in profile and returns pluginsBlocked', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'installed_plugins.json'),
+      JSON.stringify({ version: 1, plugins: { 'vercel@mkt': {}, 'ads@mkt': {} } })
+    );
+    saveProfile('dev', [], ['vercel@mkt'], tmpDir);
+
+    const result = await activateProfile('dev', tmpDir);
+
+    expect(result.pluginsBlocked).toContain('ads@mkt');
+    expect(result.pluginsBlocked).not.toContain('vercel@mkt');
   });
 });

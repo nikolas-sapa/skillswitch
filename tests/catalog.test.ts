@@ -38,7 +38,7 @@ describe('generateCatalog', () => {
     generateCatalog(tmpDir);
     const content = fs.readFileSync(path.join(tmpDir, 'SKILLS.md'), 'utf-8');
     expect(content).toContain('ads');
-    expect(content.toLowerCase()).toContain('disabled');
+    expect(content).toMatch(/disabled[\s\S]*ads/i);
   });
 
   it('returns the generated content as a string', () => {
