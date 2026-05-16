@@ -22,5 +22,7 @@
     "vitest": "^1.6.0"
   },
   "engines": { "node": ">=18" },
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": ["claude", "claude-code", "skills", "ai", "cli"],
+  "publishConfig": { "access": "public" }
 }
