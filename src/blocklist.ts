@@ -15,7 +15,8 @@ export async function readBlocklist(claudeDir = defaultClaudeDir): Promise<Block
   try {
     const raw = await fs.readFile(filePath, 'utf-8');
     const parsed = JSON.parse(raw) as BlocklistFile;
-    return { fetchedAt: parsed.fetchedAt ?? new Date().toISOString(), plugins: parsed.plugins ?? [] };
+    const plugins = Array.isArray(parsed.plugins) ? parsed.plugins : [];
+    return { fetchedAt: parsed.fetchedAt ?? new Date().toISOString(), plugins };
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
       return { fetchedAt: new Date().toISOString(), plugins: [] };
@@ -27,7 +28,9 @@ export async function readBlocklist(claudeDir = defaultClaudeDir): Promise<Block
 async function writeBlocklist(data: BlocklistFile, claudeDir: string): Promise<void> {
   const filePath = blocklistPath(claudeDir);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+  const tmp = filePath + '.tmp';
+  await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+  await fs.rename(tmp, filePath);
 }
 
 export async function blockPlugin(pluginId: string, reason: string, claudeDir = defaultClaudeDir): Promise<void> {
