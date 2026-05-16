@@ -1,61 +1,61 @@
-# skillctl
+# skillswitch
 
 Manage Claude Code skills — profiles, disable/enable, and catalog generation.
 
 Running 100+ Claude Code skills? Your context window is leaking. Claude Code injects every installed skill name into every session. With 450 skills, that's thousands of tokens burned before your first message.
 
-`skillctl` fixes this.
+`skillswitch` fixes this.
 
 ## Install
 
 ```bash
-npm install -g skillctl
+npm install -g skillswitch
 # or run without installing:
-npx skillctl <command>
+npx skillswitch <command>
 ```
 
 ## Commands
 
 ```
-skillctl status                        # how many skills are active vs disabled
-skillctl list                          # all skills by source
-skillctl list --disabled               # only disabled skills
-skillctl search <query>                # find skills by name or description
+skillswitch status                        # how many skills are active vs disabled
+skillswitch list                          # all skills by source
+skillswitch list --disabled               # only disabled skills
+skillswitch search <query>                # find skills by name or description
 
-skillctl disable <name>                # disable standalone skill (substring match)
-skillctl disable --plugin <id>         # disable entire plugin (e.g. aso-skills@aso-skills)
-skillctl enable <name>                 # re-enable standalone skill
-skillctl enable --plugin <id>          # re-enable entire plugin
+skillswitch disable <name>                # disable standalone skill (substring match)
+skillswitch disable --plugin <id>         # disable entire plugin (e.g. aso-skills@aso-skills)
+skillswitch enable <name>                 # re-enable standalone skill
+skillswitch enable --plugin <id>          # re-enable entire plugin
 
-skillctl profile create <name>         # snapshot current enabled set
-skillctl profile use <name>            # activate a profile
-skillctl profile use <name> --dry-run  # preview what would change
-skillctl profile list                  # list saved profiles
-skillctl profile show <name>           # see what's in a profile
-skillctl profile delete <name>         # remove a profile
+skillswitch profile create <name>         # snapshot current enabled set
+skillswitch profile use <name>            # activate a profile
+skillswitch profile use <name> --dry-run  # preview what would change
+skillswitch profile list                  # list saved profiles
+skillswitch profile show <name>           # see what's in a profile
+skillswitch profile delete <name>         # remove a profile
 
-skillctl catalog                       # generate ~/.claude/SKILLS.md
-skillctl audit                         # find duplicates and stale disabled skills
+skillswitch catalog                       # generate ~/.claude/SKILLS.md
+skillswitch audit                         # find duplicates and stale disabled skills
 ```
 
 ## Typical workflow
 
 ```bash
 # Start with everything enabled (your current state)
-skillctl profile create full           # save the 450-skill state
+skillswitch profile create full           # save the 450-skill state
 
 # Trim down for dev work
-skillctl disable --plugin aso-skills@aso-skills
-skillctl disable --plugin claude-ads@agricidaniel-claude-ads
-skillctl disable ads                   # disables all skills with "ads" in the name
-skillctl profile create dev            # save the lean set
+skillswitch disable --plugin aso-skills@aso-skills
+skillswitch disable --plugin claude-ads@agricidaniel-claude-ads
+skillswitch disable ads                   # disables all skills with "ads" in the name
+skillswitch profile create dev            # save the lean set
 
 # Switch contexts
-skillctl profile use dev               # 48 skills active
-skillctl profile use full              # back to 450
+skillswitch profile use dev               # 48 skills active
+skillswitch profile use full              # back to 450
 
 # Discover what you have
-skillctl catalog                       # generates ~/.claude/SKILLS.md
+skillswitch catalog                       # generates ~/.claude/SKILLS.md
 # Then in Claude: @~/.claude/SKILLS.md
 ```
 

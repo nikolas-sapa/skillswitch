@@ -9,7 +9,7 @@ import { readProfileStore, saveProfile, deleteProfile, activateProfile } from '.
 import { generateCatalog } from './catalog.js';
 
 const program = new Command();
-program.name('skillctl').description('Manage Claude Code skills').version('0.1.0');
+program.name('skillswitch').description('Manage Claude Code skills').version('0.1.0');
 
 function confirm(prompt: string): Promise<boolean> {
   return new Promise(resolve => {
@@ -80,7 +80,7 @@ program
   .action(async (name, opts) => {
     if (opts.plugin) {
       if (opts.dryRun) { console.log(`[dry-run] Would block plugin: ${name}`); return; }
-      await blockPlugin(name, 'skillctl: manually disabled');
+      await blockPlugin(name, 'skillswitch: manually disabled');
       console.log(`Plugin blocked: ${name}`); return;
     }
     const matches = scanStandaloneSkills().filter(s => s.name.includes(name) && s.status === 'active');
