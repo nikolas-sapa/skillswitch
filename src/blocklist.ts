@@ -21,6 +21,10 @@ export async function readBlocklist(claudeDir = defaultClaudeDir): Promise<Block
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
       return { fetchedAt: new Date().toISOString(), plugins: [] };
     }
+    if (err instanceof SyntaxError) {
+      process.stderr.write('Warning: blocklist.json is malformed — treating as empty\n');
+      return { fetchedAt: new Date().toISOString(), plugins: [] };
+    }
     throw err;
   }
 }
@@ -43,13 +47,14 @@ export async function blockPlugin(pluginId: string, reason: string, claudeDir = 
   await writeBlocklist(blocklist, claudeDir);
 }
 
-export async function unblockPlugin(pluginId: string, claudeDir = defaultClaudeDir): Promise<void> {
+export async function unblockPlugin(pluginId: string, claudeDir = defaultClaudeDir): Promise<boolean> {
   const blocklist = await readBlocklist(claudeDir);
   const filtered = blocklist.plugins.filter(e => e.plugin !== pluginId);
-  if (filtered.length === blocklist.plugins.length) return;
+  if (filtered.length === blocklist.plugins.length) return false;
   blocklist.plugins = filtered;
   blocklist.fetchedAt = new Date().toISOString();
   await writeBlocklist(blocklist, claudeDir);
+  return true;
 }
 
 export async function setBlockedPlugins(pluginIds: string[], reason: string, claudeDir = defaultClaudeDir): Promise<void> {

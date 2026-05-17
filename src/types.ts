@@ -29,13 +29,15 @@ export interface PluginEntry {
 }
 
 export interface Profile {
-  created: string;      // ISO timestamp
-  skills: string[];     // standalone skill names
-  plugins: string[];    // plugin ids ("name@source")
+  created: string;
+  updatedAt?: string;
+  skills: string[];
+  plugins: string[];
 }
 
 export interface ProfileStore {
   active: string | null;
+  previous: string | null;
   profiles: Record<string, Profile>;
 }
 

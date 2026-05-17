@@ -52,4 +52,51 @@ describe('generateCatalog', () => {
     expect(result).toContain('Active: 0 | Disabled: 0');
     expect(result).not.toContain('##');
   });
+
+  it('includes active plugin section in SKILLS.md', () => {
+    fs.mkdirSync(path.join(tmpDir, 'plugins', 'cache', 'mkt', 'myplugin', '1.0.0', 'skills'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'installed_plugins.json'),
+      JSON.stringify({ version: 1, plugins: { 'myplugin@mkt': {} } })
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'cache', 'mkt', 'myplugin', '1.0.0', 'skills', 'deploy.md'),
+      '# Deploy\n\nDeploys the app.'
+    );
+
+    const result = generateCatalog(tmpDir);
+    expect(result).toContain('Plugin: myplugin — active');
+    expect(result).toContain('myplugin:deploy');
+    expect(result).toContain('Deploys the app.');
+  });
+
+  it('includes disabled plugin section when plugin is blocked', () => {
+    fs.mkdirSync(path.join(tmpDir, 'plugins', 'cache', 'mkt', 'myplugin', '1.0.0', 'skills'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'installed_plugins.json'),
+      JSON.stringify({ version: 1, plugins: { 'myplugin@mkt': {} } })
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'blocklist.json'),
+      JSON.stringify({
+        fetchedAt: new Date().toISOString(),
+        plugins: [{ plugin: 'myplugin@mkt', added_at: new Date().toISOString(), reason: 'test' }],
+      })
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'cache', 'mkt', 'myplugin', '1.0.0', 'skills', 'deploy.md'),
+      '# Deploy\n\nDeploys the app.'
+    );
+
+    const result = generateCatalog(tmpDir);
+    expect(result).toContain('Plugin: myplugin — DISABLED');
+  });
+
+  it('escapes pipe characters in skill descriptions', () => {
+    fs.writeFileSync(path.join(tmpDir, 'skills', 'plan.md'), '# Plan\n\nDo A | B and C.');
+    const result = generateCatalog(tmpDir);
+    const tableRow = result.split('\n').find(line => line.includes('plan'));
+    expect(tableRow).toBeDefined();
+    expect(tableRow).toContain('\\|');
+  });
 });

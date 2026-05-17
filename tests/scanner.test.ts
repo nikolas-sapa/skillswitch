@@ -48,6 +48,18 @@ describe('scanStandaloneSkills', () => {
     fs.writeFileSync(path.join(tmpDir, 'skills', 'notes.txt'), 'ignore');
     expect(scanStandaloneSkills(tmpDir)).toHaveLength(0);
   });
+
+  it('returns both active and disabled skills when mixed', () => {
+    fs.mkdirSync(path.join(tmpDir, 'skills', '.disabled'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'skills', 'plan.md'), '# Plan\n\nActive skill.');
+    fs.writeFileSync(path.join(tmpDir, 'skills', '.disabled', 'ads.md'), '# Ads\n\nDisabled skill.');
+    const result = scanStandaloneSkills(tmpDir);
+    expect(result).toHaveLength(2);
+    const plan = result.find(s => s.name === 'plan');
+    const ads = result.find(s => s.name === 'ads');
+    expect(plan?.status).toBe('active');
+    expect(ads?.status).toBe('disabled');
+  });
 });
 
 describe('scanPlugins', () => {
@@ -96,5 +108,47 @@ describe('scanPlugins', () => {
 
     const result = scanPlugins(tmpDir);
     expect(result[0].status).toBe('disabled');
+  });
+
+  it('returns empty plugins array for orphan plugin with no cache dir', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'installed_plugins.json'),
+      JSON.stringify({ version: 1, plugins: { 'orphan@mkt': {} } })
+    );
+    const result = scanPlugins(tmpDir);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('orphan@mkt');
+    expect(result[0].skills).toHaveLength(0);
+  });
+
+  it('picks highest semver version when multiple versions exist', () => {
+    // Create version dirs: 1.0.0, 1.0.9, 1.0.10 — only 1.0.10 has a skill
+    const cacheBase = path.join(tmpDir, 'plugins', 'cache', 'mkt', 'myplugin');
+    fs.mkdirSync(path.join(cacheBase, '1.0.9', 'skills'), { recursive: true });
+    fs.mkdirSync(path.join(cacheBase, '1.0.10', 'skills'), { recursive: true });
+    // Skill only in 1.0.10
+    fs.writeFileSync(path.join(cacheBase, '1.0.10', 'skills', 'deploy.md'), '# Deploy\n\nLatest deploy.');
+
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'installed_plugins.json'),
+      JSON.stringify({ version: 1, plugins: { 'myplugin@mkt': {} } })
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'blocklist.json'),
+      JSON.stringify({ fetchedAt: new Date().toISOString(), plugins: [] })
+    );
+
+    const result = scanPlugins(tmpDir);
+    expect(result[0].skills).toHaveLength(1);
+    expect(result[0].skills[0].description).toBe('Latest deploy.');
+  });
+
+  it('returns empty plugins when installed_plugins.json is malformed JSON', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'plugins', 'installed_plugins.json'),
+      '{ broken json'
+    );
+    const result = scanPlugins(tmpDir);
+    expect(result).toHaveLength(0);
   });
 });

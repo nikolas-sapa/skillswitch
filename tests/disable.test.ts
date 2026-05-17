@@ -49,6 +49,12 @@ describe('enableSkill', () => {
   it('throws when skill is not in .disabled/', () => {
     expect(() => enableSkill('plan', tmpDir)).toThrow('not in disabled');
   });
+
+  it('works even when skills/ dir was recreated', () => {
+    // Remove and recreate skills/ dir (simulating manual cleanup)
+    enableSkill('ads', tmpDir);
+    expect(fs.existsSync(path.join(tmpDir, 'skills', 'ads.md'))).toBe(true);
+  });
 });
 
 describe('disableAllExcept', () => {
@@ -56,6 +62,15 @@ describe('disableAllExcept', () => {
     disableAllExcept(['plan'], tmpDir);
     expect(fs.existsSync(path.join(tmpDir, 'skills', 'plan.md'))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, 'skills', '.disabled', 'ship.md'))).toBe(true);
+  });
+
+  it('leaves pre-existing disabled skills untouched', () => {
+    fs.mkdirSync(path.join(tmpDir, 'skills', '.disabled'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'skills', '.disabled', 'ads.md'), '# Ads');
+    disableAllExcept(['plan'], tmpDir);
+    expect(fs.existsSync(path.join(tmpDir, 'skills', 'plan.md'))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, 'skills', '.disabled', 'ship.md'))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, 'skills', '.disabled', 'ads.md'))).toBe(true);
   });
 });
 

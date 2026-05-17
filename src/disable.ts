@@ -20,6 +20,7 @@ export function disableSkill(name: string, claudeDir = defaultClaudeDir): void {
 export function enableSkill(name: string, claudeDir = defaultClaudeDir): void {
   const src = path.join(disabledDir(claudeDir), `${name}.md`);
   if (!fs.existsSync(src)) throw new Error(`Skill "${name}" is not in disabled directory`);
+  fs.mkdirSync(skillsDir(claudeDir), { recursive: true });
   fs.renameSync(src, path.join(skillsDir(claudeDir), `${name}.md`));
 }
 
@@ -27,10 +28,20 @@ export function disableAllExcept(keepNames: string[], claudeDir = defaultClaudeD
   const dir = skillsDir(claudeDir);
   if (!fs.existsSync(dir)) return;
   const keep = new Set(keepNames);
+  const errors: string[] = [];
   for (const file of fs.readdirSync(dir)) {
     if (!file.endsWith('.md') || !fs.statSync(path.join(dir, file)).isFile()) continue;
     const name = file.slice(0, -3);
-    if (!keep.has(name)) disableSkill(name, claudeDir);
+    if (!keep.has(name)) {
+      try {
+        disableSkill(name, claudeDir);
+      } catch (err: unknown) {
+        errors.push(`  ${name}: ${(err as Error).message}`);
+      }
+    }
+  }
+  if (errors.length > 0) {
+    process.stderr.write(`Warning: could not disable some skills:\n${errors.join('\n')}\n`);
   }
 }
 

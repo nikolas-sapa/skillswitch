@@ -36,8 +36,12 @@ export function scanStandaloneSkills(claudeDir = defaultClaudeDir): StandaloneSk
       const filePath = path.join(dir, file);
       if (!fs.statSync(filePath).isFile()) continue;
       const name = file.slice(0, -3);
-      const content = fs.readFileSync(filePath, 'utf-8');
-      skills.push({ source: 'standalone', name, path: filePath, status, description: extractDescription(content) });
+      try {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        skills.push({ source: 'standalone', name, path: filePath, status, description: extractDescription(content) });
+      } catch {
+        process.stderr.write(`Warning: could not read ${filePath} — skipping\n`);
+      }
     }
   }
 
@@ -51,14 +55,31 @@ export function scanPlugins(claudeDir = defaultClaudeDir): PluginEntry[] {
   const installedFile = path.join(pluginsDir, 'installed_plugins.json');
   if (!fs.existsSync(installedFile)) return [];
 
-  const raw = JSON.parse(fs.readFileSync(installedFile, 'utf-8'));
-  const pluginMap: Record<string, unknown> = raw.plugins ?? {};
+  let pluginMap: Record<string, unknown>;
+  try {
+    const raw = JSON.parse(fs.readFileSync(installedFile, 'utf-8'));
+    pluginMap = raw.plugins ?? {};
+  } catch (err) {
+    if (err instanceof SyntaxError) {
+      process.stderr.write('Warning: plugins/installed_plugins.json is malformed — skipping plugin scan\n');
+      return [];
+    }
+    throw err;
+  }
 
   const blockedSet = new Set<string>();
   const blocklistFile = path.join(pluginsDir, 'blocklist.json');
   if (fs.existsSync(blocklistFile)) {
-    const bl: BlocklistFile = JSON.parse(fs.readFileSync(blocklistFile, 'utf-8'));
-    for (const entry of bl.plugins ?? []) blockedSet.add(entry.plugin);
+    try {
+      const bl: BlocklistFile = JSON.parse(fs.readFileSync(blocklistFile, 'utf-8'));
+      for (const entry of bl.plugins ?? []) blockedSet.add(entry.plugin);
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        process.stderr.write('Warning: plugins/blocklist.json is malformed — treating as empty\n');
+      } else {
+        throw err;
+      }
+    }
   }
 
   return Object.keys(pluginMap).map(pluginId => {
@@ -73,7 +94,7 @@ export function scanPlugins(claudeDir = defaultClaudeDir): PluginEntry[] {
     if (fs.existsSync(cacheBase)) {
       const versions = fs.readdirSync(cacheBase)
         .filter(d => fs.statSync(path.join(cacheBase, d)).isDirectory())
-        .sort();
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
       if (versions.length > 0) {
         const skillsDir = path.join(cacheBase, versions[versions.length - 1], 'skills');
         if (fs.existsSync(skillsDir)) collectPluginSkills(skillsDir, name, pluginId, status, pluginSkills);
@@ -90,12 +111,21 @@ function collectPluginSkills(dir: string, pluginName: string, pluginId: string, 
     if (fs.statSync(entryPath).isDirectory()) {
       for (const sub of fs.readdirSync(entryPath)) {
         if (!sub.endsWith('.md')) continue;
-        const content = fs.readFileSync(path.join(entryPath, sub), 'utf-8');
-        out.push({ source: 'plugin', name: `${entry}:${sub.slice(0, -3)}`, plugin: pluginId, status, description: extractDescription(content) });
+        const subPath = path.join(entryPath, sub);
+        try {
+          const content = fs.readFileSync(subPath, 'utf-8');
+          out.push({ source: 'plugin', name: `${entry}:${sub.slice(0, -3)}`, plugin: pluginId, status, description: extractDescription(content) });
+        } catch {
+          process.stderr.write(`Warning: could not read ${subPath} — skipping\n`);
+        }
       }
     } else if (entry.endsWith('.md')) {
-      const content = fs.readFileSync(entryPath, 'utf-8');
-      out.push({ source: 'plugin', name: `${pluginName}:${entry.slice(0, -3)}`, plugin: pluginId, status, description: extractDescription(content) });
+      try {
+        const content = fs.readFileSync(entryPath, 'utf-8');
+        out.push({ source: 'plugin', name: `${pluginName}:${entry.slice(0, -3)}`, plugin: pluginId, status, description: extractDescription(content) });
+      } catch {
+        process.stderr.write(`Warning: could not read ${entryPath} — skipping\n`);
+      }
     }
   }
 }
