@@ -1,6 +1,6 @@
 {
   "name": "skillswitch",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Manage Claude Code skills — profiles, disable/enable, catalog generation",
   "type": "module",
   "bin": {
