@@ -1,7 +1,7 @@
 {
   "name": "skillswitch",
   "version": "0.1.4",
-  "description": "Manage Claude Code skills — profiles, disable/enable, catalog generation",
+  "description": "Manage AI CLI skills across Claude Code, Gemini CLI, Codex CLI, Aider, Amp, and Factory Droid — profiles, disable/enable, catalog generation",
   "type": "module",
   "bin": {
     "skillswitch": "./dist/cli.js"
@@ -33,9 +33,14 @@
   "keywords": [
     "claude",
     "claude-code",
+    "gemini",
+    "codex",
+    "aider",
+    "amp",
     "skills",
     "ai",
-    "cli"
+    "cli",
+    "agent"
   ],
   "publishConfig": {
     "access": "public"
