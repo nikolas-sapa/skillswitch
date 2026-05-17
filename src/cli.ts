@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import { scanStandaloneSkills, scanPlugins, defaultClaudeDir } from './scanner.js';
 import { disableSkill, enableSkill } from './disable.js';
 import { blockPlugin, unblockPlugin } from './blocklist.js';
+import { getAdapter, getAllAdapters, CLI_NAMES, AiderAdapter } from './adapters/index.js';
 import {
   readProfileStore,
   saveProfile,
@@ -38,9 +39,10 @@ function validateProfileName(name: string): void {
 const program = new Command();
 program
   .name('skillswitch')
-  .description('Manage Claude Code skills')
-  .version('0.1.2')
-  .option('--claude-dir <path>', 'Override the Claude config directory (default: ~/.claude)');
+  .description(`Manage AI CLI skills — Claude Code, Gemini CLI, Codex CLI, Factory Droid, Amp, Aider`)
+  .version('0.1.3')
+  .option('--claude-dir <path>', 'Override the Claude config directory (default: ~/.claude)')
+  .option('--for <cli>', `Target CLI: ${CLI_NAMES.join(' | ')} (default: claude)`);
 
 function confirm(prompt: string): Promise<boolean> {
   return new Promise(resolve => {
@@ -57,7 +59,21 @@ program
   .option('--enabled', 'Show only enabled (active) skills')
   .option('--json', 'Output as JSON')
   .action((opts) => {
-    const claudeDir = getClaudeDir(program.opts());
+    const globalOpts = program.opts();
+    const cliTarget = globalOpts['for'] ?? 'claude';
+
+    if (cliTarget !== 'claude') {
+      const adapter = getAdapter(cliTarget);
+      const statusFilter = opts.disabled ? 'disabled' : opts.enabled ? 'active' : null;
+      let skills = adapter.scanSkills();
+      if (statusFilter) skills = skills.filter(s => s.status === statusFilter);
+      if (opts.json) { process.stdout.write(JSON.stringify(skills, null, 2) + '\n'); return; }
+      console.log(`\n${adapter.displayName} skills (${skills.length}):`);
+      for (const s of skills) console.log(`  ${s.name}${s.group ? ` [${s.group}]` : ''}${s.status === 'disabled' ? ' [disabled]' : ''}`);
+      return;
+    }
+
+    const claudeDir = getClaudeDir(globalOpts);
     const standalone = scanStandaloneSkills(claudeDir);
     const plugins = scanPlugins(claudeDir);
 
@@ -87,8 +103,22 @@ program
   .option('--status <status>', 'Filter by status: active or disabled')
   .option('--json', 'Output as JSON')
   .action((query, opts) => {
-    const claudeDir = getClaudeDir(program.opts());
+    const globalOpts = program.opts();
+    const cliTarget = globalOpts['for'] ?? 'claude';
     const q = query.toLowerCase();
+
+    if (cliTarget !== 'claude') {
+      const adapter = getAdapter(cliTarget);
+      let matches = adapter.scanSkills().filter(s => s.name.includes(q) || s.description.toLowerCase().includes(q));
+      if (opts.status) matches = matches.filter(s => s.status === opts.status);
+      if (opts.json) { process.stdout.write(JSON.stringify(matches, null, 2) + '\n'); return; }
+      if (!matches.length) { console.log(`No ${adapter.displayName} skills matching "${query}".`); return; }
+      console.log(`\n${matches.length} match(es) for "${query}" in ${adapter.displayName}:\n`);
+      for (const s of matches) { console.log(`  ${s.name} [${s.status}]${s.group ? ` (${s.group})` : ''}`); if (s.description) console.log(`    ${s.description}`); }
+      return;
+    }
+
+    const claudeDir = getClaudeDir(globalOpts);
     const standalone = scanStandaloneSkills(claudeDir);
     const plugins = scanPlugins(claudeDir);
     let matches = [
@@ -116,7 +146,23 @@ program
   .description('Show active profile and skill counts')
   .option('--json', 'Output as JSON')
   .action((opts) => {
-    const claudeDir = getClaudeDir(program.opts());
+    const globalOpts = program.opts();
+    const cliTarget = globalOpts['for'] ?? 'claude';
+
+    if (cliTarget !== 'claude') {
+      const adapter = getAdapter(cliTarget);
+      const skills = adapter.scanSkills();
+      const active = skills.filter(s => s.status === 'active').length;
+      const disabled = skills.filter(s => s.status === 'disabled').length;
+      if (opts.json) { process.stdout.write(JSON.stringify({ cli: adapter.displayName, active, disabled, total: active + disabled }, null, 2) + '\n'); return; }
+      console.log(`CLI            : ${adapter.displayName}`);
+      console.log(`Enabled skills : ${active}`);
+      console.log(`Disabled skills: ${disabled}`);
+      console.log(`Total          : ${active + disabled}`);
+      return;
+    }
+
+    const claudeDir = getClaudeDir(globalOpts);
     const store = readProfileStore(claudeDir);
     const standalone = scanStandaloneSkills(claudeDir);
     const plugins = scanPlugins(claudeDir);
@@ -144,8 +190,31 @@ program
   .option('--dry-run', 'Preview without making changes')
   .option('--quiet', 'Suppress output except errors')
   .action(async (name, opts) => {
-    const claudeDir = getClaudeDir(program.opts());
+    const globalOpts = program.opts();
+    const cliTarget = globalOpts['for'] ?? 'claude';
     const log = (msg: string) => { if (!opts.quiet) console.log(msg); };
+
+    if (cliTarget !== 'claude') {
+      try {
+        const adapter = getAdapter(cliTarget);
+        const matches = adapter.scanSkills().filter(s => {
+          const hit = opts.exact ? s.name === name : s.name.includes(name);
+          return hit && s.status === 'active';
+        });
+        if (!matches.length) { console.log(`No active ${adapter.displayName} skills matching "${name}".`); return; }
+        if (matches.length > 1) {
+          console.log(`Matches: ${matches.map(s => s.name).join(', ')}`);
+          if (!await confirm(`Disable all ${matches.length}? (y/N) `)) { console.log('Aborted.'); return; }
+        }
+        for (const s of matches) {
+          if (opts.dryRun) log(`[dry-run] Would disable: ${s.name}`);
+          else { adapter.disableSkill(s.name); log(`Disabled: ${s.name}`); }
+        }
+      } catch (err: unknown) { console.error(`Error: ${(err as Error).message}`); process.exit(1); }
+      return;
+    }
+
+    const claudeDir = getClaudeDir(globalOpts);
     try {
       if (opts.plugin) {
         const plugins = scanPlugins(claudeDir);
@@ -191,8 +260,31 @@ program
   .option('--dry-run', 'Preview without making changes')
   .option('--quiet', 'Suppress output except errors')
   .action(async (name, opts) => {
-    const claudeDir = getClaudeDir(program.opts());
+    const globalOpts = program.opts();
+    const cliTarget = globalOpts['for'] ?? 'claude';
     const log = (msg: string) => { if (!opts.quiet) console.log(msg); };
+
+    if (cliTarget !== 'claude') {
+      try {
+        const adapter = getAdapter(cliTarget);
+        const matches = adapter.scanSkills().filter(s => {
+          const hit = opts.exact ? s.name === name : s.name.includes(name);
+          return hit && s.status === 'disabled';
+        });
+        if (!matches.length) { console.log(`No disabled ${adapter.displayName} skills matching "${name}".`); return; }
+        if (matches.length > 1) {
+          console.log(`Matches: ${matches.map(s => s.name).join(', ')}`);
+          if (!await confirm(`Enable all ${matches.length}? (y/N) `)) { console.log('Aborted.'); return; }
+        }
+        for (const s of matches) {
+          if (opts.dryRun) log(`[dry-run] Would enable: ${s.name}`);
+          else { adapter.enableSkill(s.name); log(`Enabled: ${s.name}`); }
+        }
+      } catch (err: unknown) { console.error(`Error: ${(err as Error).message}`); process.exit(1); }
+      return;
+    }
+
+    const claudeDir = getClaudeDir(globalOpts);
     try {
       if (opts.plugin) {
         const plugins = scanPlugins(claudeDir);
@@ -520,6 +612,30 @@ program
       disabledPlugins.forEach(p => console.log(`  ${p.id}`));
     }
     if (!found) console.log('No issues found.');
+  });
+
+// detect
+program
+  .command('detect')
+  .description('Show which supported AI CLIs are installed')
+  .option('--json', 'Output as JSON')
+  .action((opts) => {
+    const adapters = getAllAdapters();
+    const results = adapters.map(a => ({ cli: a.cliName, name: a.displayName, installed: a.isInstalled() }));
+    if (opts.json) { process.stdout.write(JSON.stringify(results, null, 2) + '\n'); return; }
+    console.log('\nDetected CLIs:');
+    for (const r of results) {
+      console.log(`  ${r.name.padEnd(20)} ${r.installed ? 'installed' : 'not found'}`);
+    }
+  });
+
+// aider-config
+program
+  .command('aider-config')
+  .description('Print the read: block to paste into ~/.aider.conf.yml for active Aider skills')
+  .action(() => {
+    const adapter = new AiderAdapter();
+    process.stdout.write(adapter.generateAiderConfig());
   });
 
 program.parse();
