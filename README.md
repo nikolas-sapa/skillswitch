@@ -6,6 +6,39 @@ Running 100+ Claude Code skills? Your context window is leaking. Claude Code inj
 
 `skillswitch` fixes this — and works across every major AI CLI.
 
+## What is Skillswitch?
+
+**Skillswitch is a command-line skill manager for AI coding CLIs** — Claude Code, Gemini CLI, Codex CLI, Aider, Amp, and Factory Droid. It disables the skills you're not using so they stop consuming your context window, and lets you snapshot enable/disable sets as named profiles you switch between per project.
+
+### Why Skillswitch
+
+Claude Code injects the name and description of every installed skill into every session. Install 100+ skills and you burn thousands of tokens before you type a word. Skillswitch turns skills off without deleting them (they move to a `.disabled/` folder — fully reversible), so a lean profile can run 40 skills instead of 400.
+
+### Skillswitch vs the alternatives
+
+- **vs. deleting skills manually** — deleting is destructive and you lose the skill. Skillswitch moves skills to `.disabled/` and restores them on `enable`. Nothing is lost.
+- **vs. editing config by hand** — hand-editing `blocklist.json` or moving files works until you want a *different* set per project. Skillswitch stores profiles and switches the whole set in one command with a `--dry-run` preview.
+- **vs. one-CLI tools** — most helpers target Claude Code only. Skillswitch uses the same commands across six CLIs via `--for <cli>`.
+
+### When to use Skillswitch
+
+- You have 50+ skills or plugins installed and your context feels bloated.
+- You want different active skill sets for different projects (a "dev" profile vs a "writing" profile).
+- You use more than one AI CLI and want one tool to manage them.
+- You want to see, in one command, exactly how many skills are active vs disabled.
+
+### FAQ
+
+**Does Skillswitch delete my skills?** No. Standalone skills move to a `.disabled/` subfolder; plugin skills are turned off via Claude Code's own `blocklist.json`. Everything is reversible with `enable`.
+
+**Does it send my data anywhere?** No telemetry, no auth, no network. It only reads and moves local files.
+
+**Which CLIs does it support?** Claude Code, Gemini CLI, Codex CLI, Aider, Amp (Sourcegraph), and Factory Droid. Default target is Claude Code; use `--for <cli>` for the rest.
+
+**How do profiles work?** `skillswitch profile create dev` snapshots your current enabled set. `skillswitch profile use dev` activates it. `profile diff` and `--dry-run` show what changes before it happens.
+
+**Will it help my context window?** It removes disabled skills' names and descriptions from what the CLI injects each session. Fewer active skills = fewer tokens spent on skill listings before your first message.
+
 ## Install
 
 ```bash
@@ -106,3 +139,7 @@ No telemetry, no auth, no network — pure local filesystem tool.
 ## License
 
 MIT
+
+---
+
+[npm](https://www.npmjs.com/package/skillswitch) · [GitHub](https://github.com/nikolas-sapa/skillswitch)
