@@ -147,7 +147,7 @@ export default function SkillswitchLanding() {
       <div className="max-w-[720px] mx-auto px-6">
 
         {/* Nav */}
-        <nav className="flex justify-between items-center py-5 mb-20 sticky top-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b" style={{ borderColor: BORDER }}>
+        <nav className="relative flex justify-between items-center py-5 mb-20 sticky top-0 z-50 bg-[#0a0a0a]/70 backdrop-blur-xl after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-[#2e2e2e]/80 after:to-transparent">
           <a href={GITHUB_URL} style={{ fontFamily: MONO }} className="text-[13px] font-semibold tracking-[0.04em] hover:text-white transition-colors">
             skillswitch
           </a>
