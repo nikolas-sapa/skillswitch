@@ -1,6 +1,22 @@
 # skillswitch
 
+[![npm version](https://img.shields.io/npm/v/skillswitch?style=flat-square&color=F3F2EE&labelColor=0B0B0D)](https://www.npmjs.com/package/skillswitch)
+[![license](https://img.shields.io/badge/license-MIT-F3F2EE?style=flat-square&labelColor=0B0B0D)](LICENSE)
+[![node](https://img.shields.io/node/v/skillswitch?style=flat-square&color=F3F2EE&labelColor=0B0B0D)](package.json)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-F3F2EE?style=flat-square&labelColor=0B0B0D)](CONTRIBUTING.md)
+
 Manage AI CLI skills across Claude Code, Gemini CLI, Codex CLI, Aider, Amp, and Factory Droid — profiles, disable/enable, catalog generation.
+
+## Quick start
+
+```bash
+npm install -g skillswitch
+skillswitch detect                 # see which CLIs are installed
+skillswitch status                 # skills active vs disabled (Claude Code by default)
+skillswitch disable ads            # disable all skills matching "ads"
+skillswitch profile create dev     # snapshot the current enabled set
+skillswitch profile use dev        # activate it later
+```
 
 Running 100+ Claude Code skills? Your context window is leaking. Claude Code injects every installed skill name into every session. With 450 skills, that's thousands of tokens burned before your first message.
 
@@ -136,9 +152,16 @@ skillswitch catalog                       # generates ~/.claude/SKILLS.md
 
 No telemetry, no auth, no network — pure local filesystem tool.
 
+## Contributing
+
+Contributions welcome, especially adapters for new AI CLIs. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, repo layout, and how to add
+a new CLI adapter. Please also read the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
 
 ---
 

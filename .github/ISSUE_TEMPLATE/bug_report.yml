@@ -1,0 +1,70 @@
+name: Bug report
+description: Report a problem with skillswitch
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: skillswitch version
+      description: Output of `skillswitch --version`
+      placeholder: "0.2.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: cli-target
+    attributes:
+      label: AI CLI / tool affected
+      description: Which `--for <cli>` target were you using?
+      options:
+        - Claude Code (default)
+        - Gemini CLI
+        - Codex CLI
+        - Aider
+        - Amp (Sourcegraph)
+        - Factory Droid
+        - Not CLI-specific
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: "macOS 15, Ubuntu 24.04, Windows 11 + WSL, ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command run
+      description: The exact skillswitch command you ran
+      render: bash
+      placeholder: "skillswitch --for codex disable tdd"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include full error output if any
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Skill directory layout, profile contents, or anything else relevant
+    validations:
+      required: false

@@ -1,0 +1,43 @@
+name: Feature request
+description: Suggest an addition or change to skillswitch
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: cli-target
+    attributes:
+      label: AI CLI / tool this relates to
+      options:
+        - Claude Code
+        - Gemini CLI
+        - Codex CLI
+        - Aider
+        - Amp (Sourcegraph)
+        - Factory Droid
+        - A new CLI not yet supported
+        - Not CLI-specific
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that skillswitch doesn't support today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Command, flag, or behavior you'd like to see. Include example usage if relevant.
+      render: bash
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
