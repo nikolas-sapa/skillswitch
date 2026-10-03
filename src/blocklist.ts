@@ -3,6 +3,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { homedir } from 'os';
 import type { BlocklistEntry, BlocklistFile } from './types.js';
+import { writeAtomic } from './atomic.js';
 
 const defaultClaudeDir = path.join(homedir(), '.claude');
 
@@ -15,15 +16,19 @@ export async function readBlocklist(claudeDir = defaultClaudeDir): Promise<Block
   try {
     const raw = await fs.readFile(filePath, 'utf-8');
     const parsed = JSON.parse(raw) as BlocklistFile;
-    const plugins = Array.isArray(parsed.plugins) ? parsed.plugins : [];
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.plugins) ||
+        !parsed.plugins.every(e => e && typeof e.plugin === 'string' &&
+          typeof e.added_at === 'string' && typeof e.reason === 'string')) {
+      throw new Error('Invalid blocklist.json structure');
+    }
+    const plugins = parsed.plugins;
     return { fetchedAt: parsed.fetchedAt ?? new Date().toISOString(), plugins };
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
       return { fetchedAt: new Date().toISOString(), plugins: [] };
     }
     if (err instanceof SyntaxError) {
-      process.stderr.write('Warning: blocklist.json is malformed — treating as empty\n');
-      return { fetchedAt: new Date().toISOString(), plugins: [] };
+      throw new Error('blocklist.json is malformed; repair it before writing');
     }
     throw err;
   }
@@ -31,10 +36,7 @@ export async function readBlocklist(claudeDir = defaultClaudeDir): Promise<Block
 
 async function writeBlocklist(data: BlocklistFile, claudeDir: string): Promise<void> {
   const filePath = blocklistPath(claudeDir);
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
-  const tmp = filePath + '.tmp';
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-  await fs.rename(tmp, filePath);
+  await writeAtomic(filePath, JSON.stringify(data, null, 2));
 }
 
 export async function blockPlugin(pluginId: string, reason: string, claudeDir = defaultClaudeDir): Promise<void> {

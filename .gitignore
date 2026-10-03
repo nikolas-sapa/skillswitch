@@ -1,3 +1,7 @@
 node_modules/
 dist/
 *.tmp
+
+web/.next/
+web/next-env.d.ts
+web/*.tsbuildinfo

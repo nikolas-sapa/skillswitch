@@ -2,6 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { AdapterSkill } from './types.js';
+import { moveSkill } from '../moves.js';
 
 function parseFrontmatterField(frontmatter: string, field: string): string {
   return frontmatter.match(new RegExp(`^${field}:\\s*(.+)$`, 'm'))?.[1]?.trim() ?? '';
@@ -35,7 +36,7 @@ function readDesc(filePath: string): string {
 export function scanFlatSkills(dir: string, group?: string): AdapterSkill[] {
   const skills: AdapterSkill[] = [];
   const disabledDir = path.join(dir, '.disabled');
-  for (const [d, status] of [[dir, 'active' as const], [disabledDir, 'disabled' as const]]) {
+  for (const [d, status] of [[dir, 'active'], [disabledDir, 'disabled']] as const) {
     if (!fs.existsSync(d)) continue;
     for (const file of fs.readdirSync(d)) {
       if (!file.endsWith('.md')) continue;
@@ -48,18 +49,11 @@ export function scanFlatSkills(dir: string, group?: string): AdapterSkill[] {
 }
 
 export function disableFlatSkill(name: string, dir: string): void {
-  const src = path.join(dir, `${name}.md`);
-  if (!fs.existsSync(src)) throw new Error(`Skill "${name}" not found in ${dir}`);
-  const disDir = path.join(dir, '.disabled');
-  fs.mkdirSync(disDir, { recursive: true });
-  fs.renameSync(src, path.join(disDir, `${name}.md`));
+  moveSkill(name, dir, false, false, `Skill "${name}" not found in ${dir}`);
 }
 
 export function enableFlatSkill(name: string, dir: string): void {
-  const src = path.join(dir, '.disabled', `${name}.md`);
-  if (!fs.existsSync(src)) throw new Error(`Skill "${name}" is not disabled`);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.renameSync(src, path.join(dir, `${name}.md`));
+  moveSkill(name, dir, false, true, `Skill "${name}" is not disabled`);
 }
 
 // ── Directory-based skills (e.g. Gemini, Codex, Amp): <name>/SKILL.md ────────
@@ -67,18 +61,16 @@ export function enableFlatSkill(name: string, dir: string): void {
 export function scanDirSkills(dir: string, group?: string): AdapterSkill[] {
   const skills: AdapterSkill[] = [];
   const disabledDir = path.join(dir, '.disabled');
-  for (const [d, status] of [[dir, 'active' as const], [disabledDir, 'disabled' as const]]) {
+  for (const [d, status] of [[dir, 'active'], [disabledDir, 'disabled']] as const) {
     if (!fs.existsSync(d)) continue;
     for (const entry of fs.readdirSync(d)) {
       if (entry === '.disabled') continue;
       const ep = path.join(d, entry);
       if (!fs.statSync(ep).isDirectory()) continue;
       const skillMd = path.join(ep, 'SKILL.md');
-      let description = '';
-      if (fs.existsSync(skillMd)) {
-        const content = fs.readFileSync(skillMd, 'utf-8');
-        description = parseSkillMd(content).description || extractFirstLine(content);
-      }
+      if (!fs.existsSync(skillMd) || !fs.statSync(skillMd).isFile()) continue;
+      const content = fs.readFileSync(skillMd, 'utf-8');
+      const description = parseSkillMd(content).description || extractFirstLine(content);
       skills.push({ name: entry, status, description, ...(group ? { group } : {}) });
     }
   }
@@ -86,18 +78,11 @@ export function scanDirSkills(dir: string, group?: string): AdapterSkill[] {
 }
 
 export function disableDirSkill(name: string, dir: string): void {
-  const src = path.join(dir, name);
-  if (!fs.existsSync(src) || !fs.statSync(src).isDirectory()) throw new Error(`Skill "${name}" not found in ${dir}`);
-  const disDir = path.join(dir, '.disabled');
-  fs.mkdirSync(disDir, { recursive: true });
-  fs.renameSync(src, path.join(disDir, name));
+  moveSkill(name, dir, true, false, `Skill "${name}" not found in ${dir}`);
 }
 
 export function enableDirSkill(name: string, dir: string): void {
-  const src = path.join(dir, '.disabled', name);
-  if (!fs.existsSync(src)) throw new Error(`Skill "${name}" is not disabled`);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.renameSync(src, path.join(dir, name));
+  moveSkill(name, dir, true, true, `Skill "${name}" is not disabled`);
 }
 
 // ── Find which dir a skill lives in (for multi-dir adapters) ──────────────────

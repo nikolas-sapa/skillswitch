@@ -1,12 +1,12 @@
 // src/catalog.ts
-import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { scanStandaloneSkills, scanPlugins } from './scanner.js';
+import { writeAtomicSync } from './atomic.js';
 
 export const defaultClaudeDir = path.join(os.homedir(), '.claude');
 
-export function generateCatalog(claudeDir = defaultClaudeDir): string {
+export function generateCatalog(claudeDir = defaultClaudeDir, outPath = path.join(claudeDir, 'SKILLS.md')): string {
   const standalone = scanStandaloneSkills(claudeDir);
   const plugins = scanPlugins(claudeDir);
 
@@ -42,6 +42,6 @@ export function generateCatalog(claudeDir = defaultClaudeDir): string {
   }
 
   const content = sections.join('\n');
-  fs.writeFileSync(path.join(claudeDir, 'SKILLS.md'), content);
+  writeAtomicSync(outPath, content);
   return content;
 }

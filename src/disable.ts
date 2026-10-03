@@ -2,26 +2,18 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { boundedDisabledDir, moveSkill } from './moves.js';
 
 export const defaultClaudeDir = path.join(os.homedir(), '.claude');
 
 const skillsDir = (d: string) => path.join(d, 'skills');
-const disabledDir = (d: string) => path.join(d, 'skills', '.disabled');
 
 export function disableSkill(name: string, claudeDir = defaultClaudeDir): void {
-  const disDir = disabledDir(claudeDir);
-  if (fs.existsSync(path.join(disDir, `${name}.md`))) throw new Error(`Skill "${name}" is already disabled`);
-  const src = path.join(skillsDir(claudeDir), `${name}.md`);
-  if (!fs.existsSync(src)) throw new Error(`Skill "${name}" not found in skills directory`);
-  fs.mkdirSync(disDir, { recursive: true });
-  fs.renameSync(src, path.join(disDir, `${name}.md`));
+  moveSkill(name, skillsDir(claudeDir), false, false, `Skill "${name}" not found in skills directory`);
 }
 
 export function enableSkill(name: string, claudeDir = defaultClaudeDir): void {
-  const src = path.join(disabledDir(claudeDir), `${name}.md`);
-  if (!fs.existsSync(src)) throw new Error(`Skill "${name}" is not in disabled directory`);
-  fs.mkdirSync(skillsDir(claudeDir), { recursive: true });
-  fs.renameSync(src, path.join(skillsDir(claudeDir), `${name}.md`));
+  moveSkill(name, skillsDir(claudeDir), false, true, `Skill "${name}" is not in disabled directory`);
 }
 
 export function disableAllExcept(keepNames: string[], claudeDir = defaultClaudeDir): void {
@@ -46,7 +38,7 @@ export function disableAllExcept(keepNames: string[], claudeDir = defaultClaudeD
 }
 
 export function enableAll(claudeDir = defaultClaudeDir): void {
-  const dir = disabledDir(claudeDir);
+  const dir = boundedDisabledDir(skillsDir(claudeDir));
   if (!fs.existsSync(dir)) return;
   for (const file of fs.readdirSync(dir)) {
     if (!file.endsWith('.md')) continue;

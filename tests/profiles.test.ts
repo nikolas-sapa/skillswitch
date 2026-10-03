@@ -37,12 +37,10 @@ describe('readProfileStore', () => {
     expect(store.profiles).toEqual({});
   });
 
-  it('returns empty store when file contains malformed JSON', () => {
+  it('rejects malformed JSON without resetting the store', () => {
     fs.mkdirSync(path.join(tmpDir, 'skillctl'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'skillctl', 'profiles.json'), '{ broken');
-    const store = readProfileStore(tmpDir);
-    expect(store.active).toBeNull();
-    expect(store.profiles).toEqual({});
+    expect(() => readProfileStore(tmpDir)).toThrow('malformed');
   });
 });
 

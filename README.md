@@ -51,6 +51,8 @@ Claude Code injects the name and description of every installed skill into every
 
 **Which CLIs does it support?** Claude Code, Gemini CLI, Codex CLI, Aider, Amp (Sourcegraph), and Factory Droid. Default target is Claude Code; use `--for <cli>` for the rest.
 
+**Profiles, catalog and audit currently support Claude Code only.** Other targets are rejected for these commands; list, search, status, disable and enable support the selected CLI.
+
 **How do profiles work?** `skillswitch profile create dev` snapshots your current enabled set. `skillswitch profile use dev` activates it. `profile diff` and `--dry-run` show what changes before it happens.
 
 **Will it help my context window?** It removes disabled skills' names and descriptions from what the CLI injects each session. Fewer active skills = fewer tokens spent on skill listings before your first message.
@@ -149,6 +151,15 @@ skillswitch catalog                       # generates ~/.claude/SKILLS.md
 - **Plugin skills** (`~/.claude/plugins/`): disabled by writing to Claude Code's native `blocklist.json`
 - **Other CLIs**: skill files moved to `.disabled/` subdirectory inside their skills directory
 - **Profiles** stored in `~/.claude/skillctl/profiles.json`
+
+Moves reject existing destinations, invalid names and symlinked `.disabled/`
+directories. Existing copies remain untouched. Corrupt or invalid profile and
+blocklist JSON must be repaired before writes; it is never silently reset.
+Profile activation validates inventory and planned moves before changing skills.
+Concurrent filesystem changes or later I/O failures can still interrupt an
+activation; this is not a transactional profile switch.
+
+The CLI requires Node >=18; the separate `web/` landing requires Node >=20.9.
 
 No telemetry, no auth, no network — pure local filesystem tool.
 
