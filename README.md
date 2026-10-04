@@ -160,6 +160,7 @@ Concurrent filesystem changes or later I/O failures can still interrupt an
 activation; this is not a transactional profile switch.
 
 The CLI requires Node >=18; the separate `web/` landing requires Node >=20.9.
+Root development and tests require Node >=20.6.
 
 No telemetry, no auth, no network — pure local filesystem tool.
 
