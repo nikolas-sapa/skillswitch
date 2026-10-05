@@ -39,13 +39,11 @@ describe('readBlocklist', () => {
     expect(result.fetchedAt).toBe('2024-01-01T00:00:00.000Z');
   });
 
-  it('returns empty blocklist when file contains malformed JSON', async () => {
+  it('rejects malformed JSON without resetting the blocklist', async () => {
     const pluginsDir = path.join(tmpDir, 'plugins');
     await fs.mkdir(pluginsDir, { recursive: true });
     await fs.writeFile(path.join(pluginsDir, 'blocklist.json'), '{ broken json');
-    const result = await readBlocklist(tmpDir);
-    expect(result.plugins).toEqual([]);
-    expect(result.fetchedAt).toBeTruthy();
+    await expect(readBlocklist(tmpDir)).rejects.toThrow('malformed');
   });
 });
 

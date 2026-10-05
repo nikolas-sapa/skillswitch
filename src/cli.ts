@@ -20,6 +20,7 @@ import {
   validateProfile,
 } from './profiles.js';
 import { generateCatalog } from './catalog.js';
+import { writeAtomicSync } from './atomic.js';
 
 process.on('unhandledRejection', (err: unknown) => {
   process.stderr.write(`Error: ${(err as Error).message ?? err}\n`);
@@ -40,9 +41,18 @@ const program = new Command();
 program
   .name('skillswitch')
   .description(`Manage AI CLI skills — Claude Code, Gemini CLI, Codex CLI, Factory Droid, Amp, Aider`)
-  .version('0.1.3')
+  .version('0.2.0')
   .option('--claude-dir <path>', 'Override the Claude config directory (default: ~/.claude)')
   .option('--for <cli>', `Target CLI: ${CLI_NAMES.join(' | ')} (default: claude)`);
+
+program.hook('preAction', (_command, actionCommand) => {
+  const target = program.opts()['for'] ?? 'claude';
+  const name = actionCommand.name();
+  if (target !== 'claude' && (name === 'catalog' || name === 'audit' || actionCommand.parent?.name() === 'profile')) {
+    process.stderr.write('Error: profile, catalog and audit currently support only Claude.\n');
+    process.exit(1);
+  }
+});
 
 function confirm(prompt: string): Promise<boolean> {
   return new Promise(resolve => {
@@ -425,11 +435,7 @@ profileCmd
           if (!store.profiles[name]) { console.log(`Profile "${name}" not found.`); return; }
           delete store.profiles[name];
           const storeFile = claudeDir + '/skillctl/profiles.json';
-          const { mkdirSync, writeFileSync, renameSync } = fs;
-          const dir = storeFile.replace(/\/[^/]+$/, '');
-          mkdirSync(dir, { recursive: true });
-          writeFileSync(storeFile + '.tmp', JSON.stringify(store, null, 2));
-          renameSync(storeFile + '.tmp', storeFile);
+          writeAtomicSync(storeFile, JSON.stringify(store, null, 2));
           console.log(`Profile "${name}" deleted.`);
           return;
         }
@@ -557,9 +563,8 @@ program
   .action((opts) => {
     try {
       const claudeDir = getClaudeDir(program.opts());
-      const content = generateCatalog(claudeDir);
+      generateCatalog(claudeDir, opts.out);
       if (opts.out) {
-        fs.writeFileSync(opts.out, content);
         console.log(`Catalog written to ${opts.out}`);
       } else {
         console.log('Catalog written to ~/.claude/SKILLS.md');
